@@ -20,6 +20,9 @@ function graphFileCandidates(fileName: string): string[] {
       : []),
     path.resolve(process.cwd(), `.understand-anything/${fileName}`),
     path.resolve(process.cwd(), `../../../.understand-anything/${fileName}`),
+    // Fallback to the public/ directory for development / demo mode
+    // (e.g. public/knowledge-graph.json ships with the repo for quick testing).
+    path.resolve(process.cwd(), `public/${fileName}`),
   ];
 }
 
