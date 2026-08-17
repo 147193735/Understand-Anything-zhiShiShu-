@@ -348,11 +348,36 @@ function Uninstall-Plugin {
 # ------------------------------------------------------------
 # 启动 Dashboard
 # ------------------------------------------------------------
+# 从拖入目录探测包含 .ua/.understand-anything 的项目根（GRAPH_DIR 指向该根）
+function Find-GraphDir {
+    param([string]$Target)
+    if (-not $Target -or -not (Test-Path $Target -PathType Container)) { return $null }
+    foreach ($d in @(".ua", ".understand-anything")) {
+        if (Test-Path (Join-Path $Target $d)) { return $Target }
+    }
+    foreach ($sub in (Get-ChildItem $Target -Directory -ErrorAction SilentlyContinue)) {
+        foreach ($d in @(".ua", ".understand-anything")) {
+            if (Test-Path (Join-Path $sub.FullName $d)) { return $sub.FullName }
+        }
+    }
+    return $null
+}
+
 function Start-Dashboard {
     Clear-Host
     Write-Host "================================================"
     Write-Host "          启动 Dashboard"
     Write-Host "================================================"
+    Write-Host ""
+    # 若拖入了项目目录，探测其知识图谱位置并设置 GRAPH_DIR，让 dashboard 读取该项目图谱
+    $graphDir = Find-GraphDir -Target $Script:DragTarget
+    if ($graphDir) {
+        $env:GRAPH_DIR = $graphDir
+        Write-Host "  图谱项目: $graphDir" -ForegroundColor Cyan
+    } else {
+        Remove-Item Env:GRAPH_DIR -ErrorAction SilentlyContinue
+        Write-Host "  未指定项目，使用内置示例图谱" -ForegroundColor Yellow
+    }
     Write-Host ""
     Write-Host "正在启动 Dashboard 开发服务器..."
     Write-Host "浏览器将打开 http://localhost:5173"
@@ -450,6 +475,7 @@ function Show-Menu {
 # 拖放支持（通过 .bat 启动器传入参数）
 # ------------------------------------------------------------
 $dragTarget = $args[0]
+$Script:DragTarget = $dragTarget
 if ($dragTarget) {
     if ([IO.Path]::GetExtension($dragTarget) -eq ".lnk") {
         try {
