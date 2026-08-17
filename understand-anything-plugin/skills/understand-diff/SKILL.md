@@ -1,6 +1,6 @@
 ---
 name: understand-diff
-description: Use when you need to analyze git diffs or pull requests to understand what changed, affected components, and risks
+description: 分析 git 差异或拉取请求，理解变更、受影响组件和风险
 ---
 
 # /understand-diff

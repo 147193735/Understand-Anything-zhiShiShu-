@@ -1,7 +1,7 @@
 ---
 name: understand-chat
-description: Use when you need to ask questions about a codebase or understand code using a knowledge graph
-argument-hint: "[query]"
+description: 基于知识图谱，对代码库进行问答或理解代码时使用
+argument-hint: "[查询]"
 ---
 
 # /understand-chat

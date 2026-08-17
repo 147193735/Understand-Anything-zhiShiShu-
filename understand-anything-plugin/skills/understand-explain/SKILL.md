@@ -1,7 +1,7 @@
 ---
 name: understand-explain
-description: Use when you need a deep-dive explanation of a specific file, function, or module in the codebase
-argument-hint: "[file-path]"
+description: 深入解释代码库中特定文件、函数或模块时使用
+argument-hint: "[文件路径]"
 ---
 
 # /understand-explain

@@ -1,7 +1,7 @@
 ---
 name: understand-figma
-description: Analyze a Figma file via the Figma REST API and generate an interactive design knowledge graph (pages, screens, components, component sets, instances, design tokens) with a kind:"design" dashboard.
-argument-hint: "<figma-file-url-or-key> [--language <lang>]"
+description: 通过 Figma REST API 分析设计稿，生成交互式设计知识图谱（页面、屏幕、组件、组件集、实例、设计令牌），并带有 design 类型仪表盘
+argument-hint: "<figma文件URL或key> [--language <语言>]"
 ---
 
 # /understand-figma

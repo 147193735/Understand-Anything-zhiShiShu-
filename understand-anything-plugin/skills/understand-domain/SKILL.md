@@ -1,6 +1,6 @@
 ---
 name: understand-domain
-description: Extract business domain knowledge from a codebase and generate an interactive domain flow graph. Works standalone (lightweight scan) or derives from an existing /understand knowledge graph.
+description: 提取代码库的业务领域知识，生成交互式领域流程图。可独立运行（轻量扫描），也可基于已有的 /understand 知识图谱生成
 argument-hint: "[--full]"
 ---
 

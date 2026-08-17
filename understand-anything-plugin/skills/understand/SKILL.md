@@ -1,7 +1,7 @@
 ---
 name: understand
-description: Analyze a codebase to produce an interactive knowledge graph for understanding architecture, components, and relationships
-argument-hint: ["[path] [--full|--auto-update|--no-auto-update|--review|--language <lang>|--exclude <patterns>]"]
+description: 分析代码库，生成交互式知识图谱，用于理解架构、组件和依赖关系
+argument-hint: ["[路径] [--full|--auto-update|--no-auto-update|--review|--language <语言>|--exclude <模式>]"]
 ---
 
 # /understand

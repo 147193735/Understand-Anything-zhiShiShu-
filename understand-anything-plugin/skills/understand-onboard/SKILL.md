@@ -1,6 +1,6 @@
 ---
 name: understand-onboard
-description: Use when you need to generate an onboarding guide for new team members joining a project
+description: 为新加入项目的团队成员生成入职引导指南时使用
 ---
 
 # /understand-onboard
