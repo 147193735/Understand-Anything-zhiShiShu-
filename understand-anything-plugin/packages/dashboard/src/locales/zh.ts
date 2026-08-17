@@ -305,6 +305,63 @@ export const zh = {
       },
     ],
   },
+  warningBanner: {
+    clickToExpand: "点击展开",
+    clickToCollapse: "点击收起",
+    fatal: "致命",
+    autoCorrected: "已自动修正",
+    dropped: "已丢弃",
+    fatalCount: (n: number) => `${n} 个致命错误`,
+    autoCorrectedCount: (n: number) => `${n} 处自动修正`,
+    droppedCount: (n: number) => `${n} 个丢弃项`,
+    dashboardHit: (list: string) => `仪表盘遇到：${list}`,
+    graphLoadedWith: (list: string) => `知识图谱加载时进行了：${list}`,
+    fatalSection: (n: number) => `致命 (${n})`,
+    autoCorrectedSection: (n: number) => `已自动修正 (${n})`,
+    droppedSection: (n: number) => `已丢弃 (${n})`,
+    footerCopyFatal: "复制这些问题并到 GitHub 提交 Bug 报告",
+    footerCopyFix: "复制这些问题并让 agent 在 knowledge-graph.json 中修复",
+    copyIntroFatal:
+      "这些问题看起来像仪表盘渲染 Bug。\n请携带下面的文本到 github.com/Egonex-AI/Understand-Anything/issues 提交问题。",
+    copyIntroFix:
+      "在 knowledge-graph.json 中发现了以下问题。\n这些是 LLM 生成错误——并非系统 Bug。\n你可以让 agent 在 knowledge-graph.json 文件中修复这些具体问题：",
+    levelFatal: "致命",
+    levelAutoCorrected: "已自动修正",
+    levelDropped: "已丢弃",
+    copied: "已复制！",
+    copyIssues: "复制问题",
+  },
+  stalenessBanner: {
+    knowledgeGraph: "知识图谱",
+    domainGraph: "领域图谱",
+    knowledgeAndDomain: "知识图谱与领域图谱",
+    mayBeStale: "可能已过期",
+    hasWorkingTreeChanges: "存在工作区改动",
+    haveWorkingTreeChanges: "存在工作区改动",
+    freshnessCouldNotBeVerified: "新鲜度无法验证",
+    missingGraphCommit: "不包含可用于与 HEAD 比较的 Git 提交哈希",
+    gitHeadUnavailable: "因仪表盘无法读取 Git HEAD 而无法比较",
+    graphCommitUnavailable: "所引用的提交在此检出中不可用",
+    gitCommandTimeout: "因 Git 新鲜度命令超时而无法检查",
+    freshnessRequestFailed: "因新鲜度请求失败而无法刷新",
+    refreshFailed: "仪表盘无法刷新图谱新鲜度数据。",
+    retryAction: "重新聚焦窗口以重试新鲜度检查。",
+    fileChanged: (n: number) => `${n} 个文件自分析后发生变化。`,
+    projectCommitBehind: (graph: string, n: number, files: string) =>
+      `${graph} 落后 HEAD ${n} 个项目提交；${files}`,
+    newerHistory: (graph: string, files: string) =>
+      `${graph} 来自比 HEAD 更新的项目历史；${files}`,
+    differentHistory: (graph: string, files: string) =>
+      `${graph} 与 HEAD 来自不同的项目历史；${files}`,
+    dirtyFiles: (graph: string, n: number) =>
+      `${graph} 有 ${n} 个工作区文件已变更，且未被提交元数据覆盖。`,
+    unknownGraph: (graph: string, reason: string) => `${graph}${reason}。`,
+    runRefresh: (commands: string, isPlural: boolean) =>
+      `在依赖影响或入职引导答案之前，请运行 ${commands} 刷新${isPlural ? "它们" : "它"}。`,
+    hideFiles: "隐藏文件",
+    showFiles: "显示文件",
+    more: (n: number) => `+${n} 更多`,
+  },
 };
 
 export default zh;

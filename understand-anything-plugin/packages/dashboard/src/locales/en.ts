@@ -305,6 +305,63 @@ export const en = {
       },
     ],
   },
+  warningBanner: {
+    clickToExpand: "click to expand",
+    clickToCollapse: "click to collapse",
+    fatal: "Fatal",
+    autoCorrected: "Auto-corrected",
+    dropped: "Dropped",
+    fatalCount: (n: number) => `${n} fatal error${n !== 1 ? "s" : ""}`,
+    autoCorrectedCount: (n: number) => `${n} auto-correction${n !== 1 ? "s" : ""}`,
+    droppedCount: (n: number) => `${n} dropped item${n !== 1 ? "s" : ""}`,
+    dashboardHit: (list: string) => `Dashboard hit ${list}`,
+    graphLoadedWith: (list: string) => `Knowledge graph loaded with ${list}`,
+    fatalSection: (n: number) => `Fatal (${n})`,
+    autoCorrectedSection: (n: number) => `Auto-corrected (${n})`,
+    droppedSection: (n: number) => `Dropped (${n})`,
+    footerCopyFatal: "Copy these issues and file a bug report on GitHub",
+    footerCopyFix: "Copy these issues and ask your agent to fix them in knowledge-graph.json",
+    copyIntroFatal:
+      "Some of these issues look like dashboard rendering bugs.\nPlease file an issue at github.com/Egonex-AI/Understand-Anything/issues with the text below.",
+    copyIntroFix:
+      "The following issues were found in your knowledge-graph.json.\nThese are LLM generation errors — not a system bug.\nYou can ask your agent to fix these specific issues in the knowledge-graph.json file:",
+    levelFatal: "Fatal",
+    levelAutoCorrected: "Auto-corrected",
+    levelDropped: "Dropped",
+    copied: "Copied!",
+    copyIssues: "Copy Issues",
+  },
+  stalenessBanner: {
+    knowledgeGraph: "Knowledge graph",
+    domainGraph: "Domain graph",
+    knowledgeAndDomain: "Knowledge and domain graphs",
+    mayBeStale: " may be stale",
+    hasWorkingTreeChanges: " has working-tree changes",
+    haveWorkingTreeChanges: " have working-tree changes",
+    freshnessCouldNotBeVerified: " freshness could not be verified",
+    missingGraphCommit: "does not include a Git commit hash to compare with HEAD",
+    gitHeadUnavailable: "could not be compared because the dashboard could not read Git HEAD",
+    graphCommitUnavailable: "references a commit that is not available in this checkout",
+    gitCommandTimeout: "could not be checked because Git freshness commands timed out",
+    freshnessRequestFailed: "could not be refreshed because the freshness request failed",
+    refreshFailed: "The dashboard could not refresh graph freshness data.",
+    retryAction: "Refocus the window to retry the freshness check.",
+    fileChanged: (n: number) => `${n} file${n !== 1 ? "s" : ""} have changed since analysis.`,
+    projectCommitBehind: (graph: string, n: number, files: string) =>
+      `The ${graph} is ${n} project commit${n !== 1 ? "s" : ""} behind HEAD; ${files}`,
+    newerHistory: (graph: string, files: string) =>
+      `The ${graph} comes from a newer project history than HEAD; ${files}`,
+    differentHistory: (graph: string, files: string) =>
+      `The ${graph} and HEAD come from different project histories; ${files}`,
+    dirtyFiles: (graph: string, n: number) =>
+      `${n} working-tree file${n !== 1 ? "s" : ""} changed and ${n !== 1 ? "are" : "is"} not represented by the ${graph}'s commit metadata.`,
+    unknownGraph: (graph: string, reason: string) => `The ${graph} ${reason}.`,
+    runRefresh: (commands: string, isPlural: boolean) =>
+      `Run ${commands} to refresh ${isPlural ? "them" : "it"} before relying on impact or onboarding answers.`,
+    hideFiles: "hide files",
+    showFiles: "show files",
+    more: (n: number) => `+${n} more`,
+  },
 };
 
 export default en;
