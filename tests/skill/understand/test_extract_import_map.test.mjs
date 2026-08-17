@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = resolve(__dirname, '../../../understand-anything-plugin/skills/understand/extract-import-map.mjs');
@@ -30,14 +30,14 @@ function setupTree(files) {
  * `extraNodeArgs` is prepended to the node argv before the script path, so
  * tests can pass `--import` loader hooks to force specific failure modes.
  */
-function runScript(projectRoot, input, extraNodeArgs = []) {
+function runScript(projectRoot, input, extraNodeArgs = [], env = process.env) {
   const inputPath = join(projectRoot, 'ua-eim-input.json');
   const outputPath = join(projectRoot, 'ua-eim-output.json');
   writeFileSync(inputPath, JSON.stringify(input), 'utf-8');
   const result = spawnSync(
     'node',
     [...extraNodeArgs, SCRIPT, inputPath, outputPath],
-    { encoding: 'utf-8' },
+    { encoding: 'utf-8', env },
   );
   let output = null;
   try {
@@ -45,7 +45,13 @@ function runScript(projectRoot, input, extraNodeArgs = []) {
   } catch {
     /* output missing on hard failure */
   }
-  return { status: result.status, stdout: result.stdout, stderr: result.stderr, output };
+  return {
+    status: result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    output,
+    outputText: output ? readFileSync(outputPath, 'utf-8') : null,
+  };
 }
 
 describe('extract-import-map.mjs — TypeScript / JavaScript resolver', () => {
@@ -89,6 +95,44 @@ describe('extract-import-map.mjs — TypeScript / JavaScript resolver', () => {
     expect(result.output.stats.filesScanned).toBe(4);
     expect(result.output.stats.filesWithImports).toBe(1);
     expect(result.output.stats.totalEdges).toBe(2);
+  });
+
+  it('orders Unicode import targets by locale-independent UTF-16 code units', () => {
+    projectRoot = setupTree({
+      'src/index.ts': `import './ä';\nimport './Z';\nimport './a';\n`,
+      'src/ä.ts': 'export const umlaut = true;\n',
+      'src/Z.ts': 'export const upper = true;\n',
+      'src/a.ts': 'export const lower = true;\n',
+    });
+    const input = {
+      projectRoot,
+      files: [
+        { path: 'src/ä.ts', language: 'typescript', fileCategory: 'code' },
+        { path: 'src/index.ts', language: 'typescript', fileCategory: 'code' },
+        { path: 'src/a.ts', language: 'typescript', fileCategory: 'code' },
+        { path: 'src/Z.ts', language: 'typescript', fileCategory: 'code' },
+      ],
+    };
+
+    const cLocale = runScript(projectRoot, input, [], {
+      ...process.env,
+      LANG: 'C',
+      LC_ALL: 'C',
+    });
+    const swedishLocale = runScript(projectRoot, input, [], {
+      ...process.env,
+      LANG: 'sv_SE.UTF-8',
+      LC_ALL: 'sv_SE.UTF-8',
+    });
+
+    expect(cLocale.status, cLocale.stderr).toBe(0);
+    expect(swedishLocale.status, swedishLocale.stderr).toBe(0);
+    expect(cLocale.output.importMap['src/index.ts']).toEqual([
+      'src/Z.ts',
+      'src/a.ts',
+      'src/ä.ts',
+    ]);
+    expect(swedishLocale.outputText).toBe(cLocale.outputText);
   });
 
   it('resolves tsconfig paths aliases', () => {
@@ -866,6 +910,153 @@ describe('extract-import-map.mjs — Kotlin resolver', () => {
   });
 });
 
+describe('extract-import-map.mjs — Scala resolver', () => {
+  let projectRoot;
+
+  afterEach(() => {
+    if (projectRoot) {
+      rmSync(projectRoot, { recursive: true, force: true });
+      projectRoot = null;
+    }
+  });
+
+  it('resolves plain, selector-list, and package-object imports', () => {
+    projectRoot = setupTree({
+      'src/main/scala/com/example/Main.scala':
+        `package com.example\n\nimport com.example.foo.Bar\nimport com.example.util.{Helper, Other}\nimport com.example.model._\n\nobject Main\n`,
+      'src/main/scala/com/example/foo/Bar.scala':
+        `package com.example.foo\n\nclass Bar\n`,
+      'src/main/scala/com/example/util/Helper.scala':
+        `package com.example.util\n\nobject Helper\n`,
+      'src/main/scala/com/example/util/Other.scala':
+        `package com.example.util\n\nobject Other\n`,
+      'src/main/scala/com/example/model/package.scala':
+        `package com.example\n\npackage object model\n`,
+      'src/main/scala/com/example/model/User.scala':
+        `package com.example.model\n\ncase class User(id: Long)\n`,
+      'src/main/scala/com/example/model/Order.scala':
+        `package com.example.model\n\ncase class Order(id: Long)\n`,
+    });
+
+    const files = [
+      { path: 'src/main/scala/com/example/Main.scala', language: 'scala', fileCategory: 'code' },
+      { path: 'src/main/scala/com/example/foo/Bar.scala', language: 'scala', fileCategory: 'code' },
+      { path: 'src/main/scala/com/example/util/Helper.scala', language: 'scala', fileCategory: 'code' },
+      { path: 'src/main/scala/com/example/util/Other.scala', language: 'scala', fileCategory: 'code' },
+      { path: 'src/main/scala/com/example/model/package.scala', language: 'scala', fileCategory: 'code' },
+      { path: 'src/main/scala/com/example/model/User.scala', language: 'scala', fileCategory: 'code' },
+      { path: 'src/main/scala/com/example/model/Order.scala', language: 'scala', fileCategory: 'code' },
+    ];
+
+    const result = runScript(projectRoot, { projectRoot, files });
+
+    expect(result.status).toBe(0);
+    expect(result.output.importMap['src/main/scala/com/example/Main.scala']).toEqual([
+      'src/main/scala/com/example/foo/Bar.scala',
+      'src/main/scala/com/example/model/Order.scala',
+      'src/main/scala/com/example/model/User.scala',
+      'src/main/scala/com/example/model/package.scala',
+      'src/main/scala/com/example/util/Helper.scala',
+      'src/main/scala/com/example/util/Other.scala',
+    ]);
+  });
+
+  it('resolves renamed selector imports by original source names', () => {
+    projectRoot = setupTree({
+      'src/main/scala/com/example/Main.scala':
+        `package com.example\n\nimport com.example.util.{Helper => H, Other as O}\n\nobject Main\n`,
+      'src/main/scala/com/example/util/Helper.scala':
+        `package com.example.util\n\nobject Helper\n`,
+      'src/main/scala/com/example/util/Other.scala':
+        `package com.example.util\n\nobject Other\n`,
+    });
+
+    const result = runScript(projectRoot, {
+      projectRoot,
+      files: [
+        { path: 'src/main/scala/com/example/Main.scala', language: 'scala', fileCategory: 'code' },
+        { path: 'src/main/scala/com/example/util/Helper.scala', language: 'scala', fileCategory: 'code' },
+        { path: 'src/main/scala/com/example/util/Other.scala', language: 'scala', fileCategory: 'code' },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output.importMap['src/main/scala/com/example/Main.scala']).toEqual([
+      'src/main/scala/com/example/util/Helper.scala',
+      'src/main/scala/com/example/util/Other.scala',
+    ]);
+  });
+
+  it('does not add package.scala when a plain import resolves directly', () => {
+    projectRoot = setupTree({
+      'src/main/scala/com/example/Main.scala':
+        `package com.example\n\nimport com.example.pkg.Bar\n\nobject Main\n`,
+      'src/main/scala/com/example/pkg/Bar.scala':
+        `package com.example.pkg\n\nclass Bar\n`,
+      'src/main/scala/com/example/pkg/package.scala':
+        `package com.example\n\npackage object pkg { val defaultTimeout = 30 }\n`,
+    });
+
+    const result = runScript(projectRoot, {
+      projectRoot,
+      files: [
+        { path: 'src/main/scala/com/example/Main.scala', language: 'scala', fileCategory: 'code' },
+        { path: 'src/main/scala/com/example/pkg/Bar.scala', language: 'scala', fileCategory: 'code' },
+        { path: 'src/main/scala/com/example/pkg/package.scala', language: 'scala', fileCategory: 'code' },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output.importMap['src/main/scala/com/example/Main.scala']).toEqual([
+      'src/main/scala/com/example/pkg/Bar.scala',
+    ]);
+  });
+
+  it('resolves imports to .sc Scala script targets', () => {
+    projectRoot = setupTree({
+      'src/main/scala/com/example/Main.scala':
+        `package com.example\n\nimport com.example.scripts.Task\n\nobject Main\n`,
+      'src/main/scala/com/example/scripts/Task.sc':
+        `package com.example.scripts\n\nobject Task\n`,
+    });
+
+    const result = runScript(projectRoot, {
+      projectRoot,
+      files: [
+        { path: 'src/main/scala/com/example/Main.scala', language: 'scala', fileCategory: 'code' },
+        { path: 'src/main/scala/com/example/scripts/Task.sc', language: 'scala', fileCategory: 'code' },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output.importMap['src/main/scala/com/example/Main.scala']).toEqual([
+      'src/main/scala/com/example/scripts/Task.sc',
+    ]);
+  });
+
+  it('drops scala external imports (cats.effect, scala.concurrent, etc.)', () => {
+    projectRoot = setupTree({
+      'src/app/App.scala':
+        `package app\n\nimport cats.effect.IO\nimport scala.concurrent.Future\nimport app.Local\n\nobject App\n`,
+      'src/app/Local.scala':
+        `package app\n\nclass Local\n`,
+    });
+
+    const result = runScript(projectRoot, {
+      projectRoot,
+      files: [
+        { path: 'src/app/App.scala', language: 'scala', fileCategory: 'code' },
+        { path: 'src/app/Local.scala', language: 'scala', fileCategory: 'code' },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    // cats.effect/scala.concurrent are external (no project file matches);
+    // app.Local maps via suffix to src/app/Local.scala.
+    expect(result.output.importMap['src/app/App.scala']).toEqual(['src/app/Local.scala']);
+  });
+});
+
 describe('extract-import-map.mjs — C# resolver', () => {
   let projectRoot;
 
@@ -1197,6 +1388,96 @@ describe('extract-import-map.mjs — C/C++ resolver', () => {
       'include/config.h',
       'src/shared.h',
     ]);
+  });
+});
+
+describe('extract-import-map.mjs — Swift resolver', () => {
+  let projectRoot;
+
+  afterEach(() => {
+    if (projectRoot) {
+      rmSync(projectRoot, { recursive: true, force: true });
+      projectRoot = null;
+    }
+  });
+
+  it('resolves SwiftPM target imports to all files in the imported module', () => {
+    projectRoot = setupTree({
+      'Sources/App/App.swift': `public struct AppRoot {}\n`,
+      'Sources/App/Feature.swift': `public struct Feature {}\n`,
+      'Tests/AppTests/AppTests.swift':
+        `import XCTest\n` +
+        `@testable import App\n` +
+        `final class AppTests: XCTestCase {}\n`,
+    });
+
+    const result = runScript(projectRoot, {
+      projectRoot,
+      files: [
+        { path: 'Sources/App/App.swift', language: 'swift', fileCategory: 'code' },
+        { path: 'Sources/App/Feature.swift', language: 'swift', fileCategory: 'code' },
+        { path: 'Tests/AppTests/AppTests.swift', language: 'swift', fileCategory: 'code' },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output.importMap['Tests/AppTests/AppTests.swift']).toEqual([
+      'Sources/App/App.swift',
+      'Sources/App/Feature.swift',
+    ]);
+    expect(result.output.importMap['Sources/App/App.swift']).toEqual([]);
+    expect(result.output.importMap['Sources/App/Feature.swift']).toEqual([]);
+    expect(result.output.stats.filesWithImports).toBe(1);
+    expect(result.output.stats.totalEdges).toBe(2);
+  });
+
+  it('uses Package.swift custom target paths when module name differs from directory name', () => {
+    projectRoot = setupTree({
+      'Package.swift':
+        `// swift-tools-version: 5.9\n` +
+        `import PackageDescription\n` +
+        `let package = Package(\n` +
+        `  name: "Workspace",\n` +
+        `  targets: [\n` +
+        `    .target(name: "Domain", path: "Core/Model"),\n` +
+        `    .executableTarget(name: "App", path: "Clients/App")\n` +
+        `  ]\n` +
+        `)\n`,
+      'Core/Model/User.swift': `public struct User {}\n`,
+      'Clients/App/main.swift': `import Foundation\nimport Domain\nprint(User.self)\n`,
+    });
+
+    const result = runScript(projectRoot, {
+      projectRoot,
+      files: [
+        { path: 'Package.swift', language: 'swift', fileCategory: 'code' },
+        { path: 'Core/Model/User.swift', language: 'swift', fileCategory: 'code' },
+        { path: 'Clients/App/main.swift', language: 'swift', fileCategory: 'code' },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output.importMap['Clients/App/main.swift']).toEqual([
+      'Core/Model/User.swift',
+    ]);
+    expect(result.output.importMap['Package.swift']).toEqual([]);
+  });
+
+  it('drops Swift SDK imports when no project module matches', () => {
+    projectRoot = setupTree({
+      'Sources/App/View.swift': `import SwiftUI\nimport Foundation\nstruct RootView {}\n`,
+    });
+
+    const result = runScript(projectRoot, {
+      projectRoot,
+      files: [
+        { path: 'Sources/App/View.swift', language: 'swift', fileCategory: 'code' },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output.importMap['Sources/App/View.swift']).toEqual([]);
+    expect(result.output.stats.totalEdges).toBe(0);
   });
 });
 
@@ -1722,7 +2003,7 @@ describe('extract-import-map.mjs — tree-sitter init graceful failure', () => {
           { path: 'src/lib.ts', language: 'typescript', fileCategory: 'code' },
         ],
       },
-      ['--import', loaderPath],
+      ['--import', pathToFileURL(loaderPath).href],
     );
 
     expect(result.status).toBe(0);
